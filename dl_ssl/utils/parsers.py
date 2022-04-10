@@ -21,4 +21,4 @@ class TrainParser(object):
         self.parser.add_argument('--labelled', action='store_true')
 
     def parse(self):
-        return parser.parse_args()
+        return self.parser.parse_args()

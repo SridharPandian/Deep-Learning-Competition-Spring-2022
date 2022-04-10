@@ -5,10 +5,13 @@ import numpy as np
 # Torch imports
 import torch
 from torch.utils.data import DataLoader
+
+# Model imports
+from byol_pytorch import BYOL
 from torchvision import models
 
 # Dataset imports
-from dl_ssl.datasets.representation import RepresentationImageDataset
+from dl_ssl.datasets.dataset import LabeledDataset, UnlabeledDataset
 
 # Graphical imports
 import wandb
@@ -18,7 +21,7 @@ import argparse
 from tqdm import tqdm
 
 # Other utility imports
-from dl_ssl.utils.image_transforms import augmentation_generator
+from dl_ssl.utils.transforms import augmentation_generator
 from dl_ssl.utils.files import *
 
 # Parser import
@@ -29,11 +32,9 @@ CHKPT_PATH = get_path_in_package('checkpoints')
 
 def train_byol(options, device):
     # Loading the dataset
-    dataset = RepresentationImageDataset(options.img_size, options.train_data_path, options.unlabelled)
-
-    # Creating the dataloader
-    dataloader = DataLoader(dataset, options.batch_size, shuffle = True, pin_memory = True, num_workers = 24)
-    
+    dataset = UnlabeledDataset(root = options.train_data_path, img_size = options.img_size, unlabelled = not options.labelled)
+    dataloader = DataLoader(dataset, batch_size = options.batch_size, shuffle = True, num_workers = 24, pin_memory = True)
+   
     # Creating the BYOL model
     encoder = models.resnet50(pretrained = False).to(device)
     if options.augment_imgs is True:
@@ -51,6 +52,12 @@ def train_byol(options, device):
 
     # Initializing WandB project
     wandb.init(project = "Deep Learning - SSL")
+    wandb.run.name = f'BYOL - v{options.run}'
+    wandb.config = {
+        "learning_rate": options.lr,
+        "epochs": options.epochs,
+        "batch_size": options.batch_size
+    }
 
     # Initializing the optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = options.lr)
@@ -68,7 +75,7 @@ def train_byol(options, device):
     for epoch in range(options.epochs):
         train_loss = 0
 
-        for images, targets in tqdm(dataloader):
+        for images in tqdm(dataloader):
             optimizer.zero_grad()
 
             loss = model(images.float().to(device))
@@ -80,6 +87,7 @@ def train_byol(options, device):
         # Logging the losses
         print(f"Training Loss encountered: {train_loss / len(dataset)}")
         wandb.log({'train_loss': train_loss / len(dataset)})
+        wandb.watch(encoder)
 
         if epoch % 20 == 0:
             epoch_checkpt_path = os.path.join(run_chkpt_dir, f"checkpoint-{epoch + 1}.pth")
