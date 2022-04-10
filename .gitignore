@@ -1,0 +1,7 @@
+# Ignoring all pycaches
+*__pycache__*
+
+# Ignoring the data
+dl_ssl/data/*
+
+dl_ssl.egg-info/*
