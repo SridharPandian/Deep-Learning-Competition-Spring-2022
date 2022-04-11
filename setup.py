@@ -14,7 +14,7 @@ setup(
         "numpy>=1.18.0",
         "torch>=1.10.1+cu113",
         "torchvision==0.11.2+cu113",
-        "byol-pytorch==0.5.7",
+        "byol-pytorch==0.6.0",
     ],
     python_requires=">=3.7",
 )
