@@ -13,6 +13,7 @@ class TrainParser(object):
         self.parser.add_argument('-b', '--batch_size', type=int)
         self.parser.add_argument('-e', '--epochs', type=int)
         self.parser.add_argument('-g', '--gpu_num', type=int)
+        self.parser.add_argument('-n', '--num_gpus', type=int)
         self.parser.add_argument('-l', '--lr', type=float)
         self.parser.add_argument('-i', '--img_size', type=int)
         self.parser.add_argument('-d', '--train_data_path', type=str)
