@@ -72,6 +72,8 @@ def train_byol(options, device):
     else:
         run_chkpt_dir = os.path.join(CHKPT_PATH, f'byol_unlabelled_run_{options.run}')
 
+    make_dir(run_chkpt_dir)
+
     for epoch in range(options.epochs):
         train_loss = 0
 
@@ -87,7 +89,6 @@ def train_byol(options, device):
         # Logging the losses
         print(f"Training Loss encountered: {train_loss / len(dataset)}")
         wandb.log({'train_loss': train_loss / len(dataset)})
-        wandb.watch(encoder)
 
         if epoch % 20 == 0:
             epoch_checkpt_path = os.path.join(run_chkpt_dir, f"checkpoint-{epoch + 1}.pth")

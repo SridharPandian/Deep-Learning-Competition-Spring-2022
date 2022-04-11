@@ -4,4 +4,9 @@
 # Ignoring the data
 dl_ssl/data/*
 
+# WandB stats
+*wandb*
+
 dl_ssl.egg-info/*
+
+
