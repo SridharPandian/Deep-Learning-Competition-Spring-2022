@@ -25,8 +25,11 @@ from dl_ssl.utils.files import *
 
 # Parser import
 from dl_ssl.utils.parsers import TrainParser
+import torchvision
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
-rpn_network='../demo/train_04_10_2022_18_57_15/_epoch3.tar'
+
+rpn_network_filepath='../demo/train_04_10_2022_18_57_15/_epoch3.tar'
 filepath='/data/sridhar/checkpoints/byol_unlabelled_run_4/checkpoint-101.pth'
 
 
@@ -48,11 +51,30 @@ def create_byol_model(device, chkpt_weights, augment_img=True):
     encoder.load_state_dict(chkpt_weights)
     encoder.eval()
 
-def create_rpn_network():
-    pass
+def get_rpn_model(num_classes):
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
+    return model
+
+def create_rpn_network(rpn_weights):
+    model = get_rpn_model(100)
+    model.load_state_dict(rpn_weights)
+    model.eval()
+    return model
 
 def train_model():
     # Selecting the GPU
     device = torch.device(f"cuda:{options.gpu_num}")
     print(f"Using GPU: {options.gpu_num} for training the model.")
-    create_byol_model(device,filepath) 
+    
+
+
+    rpn = get_rpn_model(rpn_network_filepath)
+    enc = create_byol_model(device,filepath)
+
+
