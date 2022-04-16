@@ -1,7 +1,16 @@
-# Ignoring all pycaches
+# Pycaches
 *__pycache__*
 
-# Ignoring the data
+# Dataset
 dl_ssl/data/*
 
+# WandB stats
+*wandb*
+
+# Checkpoints
+dl_ssl/checkpoints/*
+
+# Setup files
 dl_ssl.egg-info/*
+
+
