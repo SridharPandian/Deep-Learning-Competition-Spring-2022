@@ -40,11 +40,21 @@ for img, label  in train_dataset:
     res = model([img])[0]
     fig, ax = plt.subplots()
     ax.set_title(label)
-    coords = res['boxes'].detach().numpy()
+    
+    coords = res['boxes'].detach()[:5].numpy()
     print(coords)
-
-    ax.imshow(img.permute(1,2,0))
+    #ax.imshow(img.permute(1,2,0))
     for i in range(coords.shape[0]):
         rect = patches.Rectangle((coords[i][0],coords[i][1]), coords[i][2] - coords[i][0], coords[i][3] - coords[i][1],linewidth=1, edgecolor='r', facecolor='none')
-        ax.add_patch(rect)
+        #ax.add_patch(rect)
+        import pdb
+        pdb.set_trace()
+        cropped_img = torchvision.transforms.functional.crop(img,int(coords[i][1]),int(coords[i][0]),int( coords[i][3] - coords[i][1]), int(coords[i][2] - coords[i][0]))
+         
+        plt.imshow(cropped_img.permute(2,1,0))
+        print(cropped_img)
+        plt.show()
+        
     plt.show()
+    import pdb
+    pdb.set_trace()
