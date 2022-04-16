@@ -33,10 +33,11 @@ rpn_network_filepath='../demo/train_04_10_2022_18_57_15/_epoch3.tar'
 filepath='/data/sridhar/checkpoints/byol_unlabelled_run_4/checkpoint-101.pth'
 
 
+#TODO probably can do the following importing of pre-trained models more neatly
 def create_byol_model(device, chkpt_weights, augment_img=True):
     # Creating the BYOL model
     encoder = models.resnet50(pretrained = False).to(device)
-    if augment_img is True:
+"""    if augment_img is True:
         augment_custom = augmentation_generator()
         model = BYOL(
             encoder,
@@ -48,6 +49,7 @@ def create_byol_model(device, chkpt_weights, augment_img=True):
             encoder,
             image_size = options.img_size
         )
+"""
     encoder.load_state_dict(chkpt_weights)
     encoder.eval()
 
@@ -61,11 +63,12 @@ def get_rpn_model(num_classes):
 
     return model
 
-def create_rpn_network(rpn_weights):
-    model = get_rpn_model(100)
+def create_rpn_network(device, rpn_weights):
+    model = get_rpn_model(100).to(device)
     model.load_state_dict(rpn_weights)
     model.eval()
     return model
+
 
 def train_model():
     # Selecting the GPU
@@ -73,8 +76,20 @@ def train_model():
     print(f"Using GPU: {options.gpu_num} for training the model.")
     
 
+    num_classes = 100
+    train_dataset = LabeledDataset(root=labeled_data_path, split="training", transforms=get_transform(train=True))
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
-    rpn = get_rpn_model(rpn_network_filepath)
+    valid_dataset = LabeledDataset(root=labeled_data_path, split="validation", transforms=get_transform(train=False))
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
+
+
+    rpn = get_rpn_model(device, rpn_network_filepath)
     enc = create_byol_model(device,filepath)
 
+    classifier = SimpleClassifier(device)
+
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
