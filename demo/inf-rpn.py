@@ -55,6 +55,3 @@ for img, label  in train_dataset:
         print(cropped_img)
         plt.show()
         
-    plt.show()
-    import pdb
-    pdb.set_trace()
