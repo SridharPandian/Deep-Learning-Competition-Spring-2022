@@ -28,13 +28,16 @@ from dl_ssl.utils.files import *
 from dl_ssl.utils.parsers import TrainParser
 
 CHKPT_PATH = get_path_in_package('checkpoints')
-
+VERBOSE = True
 
 def train_byol(options, device):
+    global VERBOSE
+    if(VERBOSE): print('Begining train_byol')
     # Loading the dataset
     dataset = UnlabeledDataset(root = options.train_data_path, img_size = options.img_size, unlabelled = not options.labelled)
     dataloader = DataLoader(dataset, batch_size = options.batch_size, shuffle = True, num_workers = 24, pin_memory = True)
-   
+    if(VERBOSE): print('Loaded dataset')
+ 
     # Creating the BYOL model
     encoder = models.resnet50(pretrained = False).to(device)
     if options.augment_imgs is True:
@@ -49,6 +52,7 @@ def train_byol(options, device):
             encoder,
             image_size = options.img_size
         )
+    if(VERBOSE): print('Created model')
 
     # Initializing WandB project
     wandb.init(project = "Deep Learning - SSL")
@@ -58,7 +62,8 @@ def train_byol(options, device):
         "epochs": options.epochs,
         "batch_size": options.batch_size
     }
-
+    if(VERBOSE): print('Created WandB project')
+    
     # Initializing the optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr = options.lr)
 
