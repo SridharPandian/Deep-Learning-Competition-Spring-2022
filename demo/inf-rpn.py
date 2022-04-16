@@ -54,4 +54,3 @@ for img, label  in train_dataset:
         plt.imshow(cropped_img.permute(2,1,0))
         print(cropped_img)
         plt.show()
-        
