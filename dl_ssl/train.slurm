@@ -26,14 +26,12 @@ mkdir /tmp/$USER
 export SINGULARITY_CACHEDIR=/tmp/$USER
 
 echo "Beging copying dataset"
-cp -rp /scratch/DL22SP/unlabeled_224.sqsh /tmp
 cp -rp /scratch/DL22SP/labeled.sqsh /tmp
 echo "Dataset is copied to /tmp"
 
 singularity exec --nv \
 --bind /scratch \
 --overlay /scratch/DL22SP/conda.ext3:ro \
---overlay /tmp/unlabeled_224.sqsh \
 --overlay /tmp/labeled.sqsh \
 /share/apps/images/cuda11.3.0-cudnn8-devel-ubuntu20.04.sif \
 /bin/bash -c "
@@ -43,5 +41,5 @@ cd /home/ss14499/Deep-Learning-Competition-Spring-2022 && pip install -e .
 pip install wandb
 pip install tqdm
 cd dl_ssl
-python train.py  --model byol --batch_size 4 --epochs 3 --gpu_num 0 --lr 3e-04 --img_size 224 --train_data_path /tmp/unlabeled_data/training/images --run 0  --augment_imgs
+python train.py  --model byol --batch_size 4 --epochs 3 --gpu_num 0 --lr 3e-04 --img_size 224 --train_data_path /tmp/labeled_data/training/images --labelled  --run 0  --augment_imgs
 "
