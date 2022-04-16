@@ -10,6 +10,7 @@ class TrainParser(object):
 
     def add_arguments(self):
         self.parser.add_argument('-m', '--model', type=str)
+        self.parser.add_argument('-n', '--encoder', default="resnet50", type=str)
         self.parser.add_argument('-b', '--batch_size', type=int)
         self.parser.add_argument('-e', '--epochs', default=200, type=int)
         self.parser.add_argument('-g', '--gpu_num', default=0, type=int)
