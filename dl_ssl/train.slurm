@@ -39,9 +39,9 @@ singularity exec --nv \
 /bin/bash -c "
 source /ext3/env.sh
 conda activate
-cd /scratch_tmp/ss14499/Deep-Learning-Competition-Spring-2022 && pip install -e .
+cd /home/ss14499/Deep-Learning-Competition-Spring-2022 && pip install -e .
 pip install wandb
 pip install tqdm
 cd dl_ssl
-python train.py  --model byol --batch_size 4 --epochs 3 --gpu_num 0 --lr 3e-04 --img_size 224 --train_data_path /unlabeled_data --run 0  --augment_imgs
+python train.py  --model byol --batch_size 4 --epochs 3 --gpu_num 0 --lr 3e-04 --img_size 224 --train_data_path /tmp/unlabeled_data/training/images --run 0  --augment_imgs
 "
