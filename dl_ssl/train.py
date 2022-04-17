@@ -57,12 +57,14 @@ def train_byol(options):
         model = BYOL(
             encoder,
             image_size = options.img_size,
-            augment_fn = augment_custom
+            augment_fn = augment_custom,
+            hidden_layer = 'avgpool'
         )
     else:
         model = BYOL(
             encoder,
-            image_size = options.img_size
+            image_size = options.img_size,
+            hidden_layer = 'avgpool'
         )
 
     # Initializing WandB project
