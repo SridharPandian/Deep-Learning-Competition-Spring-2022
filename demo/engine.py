@@ -5,6 +5,11 @@ import torch
 
 import torchvision.models.detection.mask_rcnn
 
+
+#hacky, but needed when training encoder classifier
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+
 from coco_utils import get_coco_api_from_dataset
 from coco_eval import CocoEvaluator
 import utils
