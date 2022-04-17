@@ -37,21 +37,23 @@ filepath='/data/sridhar/checkpoints/byol_unlabelled_run_4/checkpoint-101.pth'
 def create_byol_model(device, chkpt_weights, augment_img=True):
     # Creating the BYOL model
     encoder = models.resnet50(pretrained = False).to(device)
-"""    if augment_img is True:
-        augment_custom = augmentation_generator()
-        model = BYOL(
-            encoder,
-            image_size = options.img_size,
-            augment_fn = augment_custom
-        )
-    else:
-        model = BYOL(
-            encoder,
-            image_size = options.img_size
-        )
-"""
+
     encoder.load_state_dict(chkpt_weights)
     encoder.eval()
+    return encoder
+
+    # if augment_img is True:
+    #     augment_custom = augmentation_generator()
+    #     model = BYOL(
+    #         encoder,
+    #         image_size = options.img_size,
+    #         augment_fn = augment_custom
+    #     )
+    # else:
+    #     model = BYOL(
+    #         encoder,
+    #         image_size = options.img_size
+    #     )
 
 def get_rpn_model(num_classes):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
@@ -87,7 +89,7 @@ def train_model():
     rpn = get_rpn_model(device, rpn_network_filepath)
     enc = create_byol_model(device,filepath)
 
-    classifier = SimpleClassifier(device)
+    classifier = SimpleClassifier(device, enc)
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
