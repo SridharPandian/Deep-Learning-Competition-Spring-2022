@@ -35,7 +35,7 @@ def showbbox(model, img, device):
         cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), thickness=2)
         #Crop image
         cropped_image = img[xmin:xmax, ymin:ymax]
-        
+    #TODO : cropped_image, label as atuple/different dataset.
 
     
     plt.figure(figsize=(20,15))
@@ -47,6 +47,8 @@ def get_cropped_box(img, bb_coords):
     for xmin, ymin, xmax, ymax in bb_coords:
         torch.Tensor(img[xmin:xmax, ymin:ymax])
         cropped_images.append(img[xmin:xmax, ymin:ymax])
+    #TODO : cropped_image, label as atuple/different dataset.
+
     return cropped_images
     
 
