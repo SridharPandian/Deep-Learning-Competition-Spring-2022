@@ -13,10 +13,11 @@ from torchvision.models.detection.anchor_utils import AnchorGenerator
 import transforms as T
 import utils
 from engine import train_one_epoch, evaluate
-
+from datetime import datetime
 
 from dataset import UnlabeledDataset, LabeledDataset
 
+byol_weights_filepath='/data/sridhar/checkpoints/byol_unlabelled_run_4/checkpoint-101.pth'
 def get_transform(train):
     transforms = []
     transforms.append(T.ToTensor())
@@ -35,10 +36,15 @@ def get_model(num_classes):
     return model
 
 def get_fasterRCNN(num_classes = 100):
+    ssl_model = torchvision.models.resnet50(pretrained=False)
+    b = torch.load(open(byol_weights_filepath,'rb'))
+    ssl_model.load_state_dict(b['model_state_dict'])
 
-    ssl_bb = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
+    #ssl_bb = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
+
+    ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-2]))
     # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
-
+    
     # # get number of input features for the classifier
     # in_features = model.roi_heads.box_predictor.cls_score.in_features
     # # replace the pre-trained head with a new one
@@ -63,6 +69,9 @@ def get_fasterRCNN(num_classes = 100):
     return model
 
 def main():
+    now = datetime.now()
+    job_dir = now.strftime("train_%m_%d_%Y_%H_%M_%S")
+    os.mkdir(job_dir)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     num_classes = 100
@@ -89,6 +98,14 @@ def main():
         lr_scheduler.step()
         # evaluate on the test dataset
         evaluate(model, valid_loader, device=device)
+        if(epoch%5 == 0): 
+            # save model weights
+            output_file = job_dir + '/_epoch' + str(epoch) + '.tar'
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                }, output_file)
 
     print("That's it!")
 
