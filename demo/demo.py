@@ -43,7 +43,13 @@ def get_fasterRCNN(num_classes = 100):
     backbone = resnet_fpn_backbone('resnet50', False, trainable_layers=3)
     # This just adds the fpn to the resnet backbone?
     backbone.body = ssl_bb
+    
     model = torchvision.models.detection.FasterRCNN(backbone, num_classes=100)
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
     return model
 
 def main():
