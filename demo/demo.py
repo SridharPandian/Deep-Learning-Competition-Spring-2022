@@ -35,9 +35,12 @@ def get_model(num_classes):
     return model
 
 def get_fasterRCNN(num_classes = 100):
-    backbone = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
-    backbone.out_channels = 2048
+    ssl_bb = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
+    # backbone.out_channels = 2048
     #TODO Load SSL trained weights here
+
+    backbone = torchvision.models.detection.resnet_fpn_backbone('resnet50', False, trainable_layers=3)
+    backbone.body = ssl_bb
     model = torchvision.models.detection.FasterRCNN(backbone, num_classes=100)
     return model
 
