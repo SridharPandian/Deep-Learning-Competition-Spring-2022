@@ -34,7 +34,7 @@ def get_model(num_classes):
 
     return model
 
-def get_fasterRCNN():
+def get_fasterRCNN(num_classes = 100):
     backbone = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
     backbone.out_channels = 2048
     #TODO Load SSL trained weights here
@@ -51,7 +51,8 @@ def main():
     valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
-    model = get_model(num_classes)
+    # model = get_model(num_classes)
+    model = get_fasterRCNN(num_classes)
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
