@@ -37,13 +37,13 @@ def get_model(num_classes):
 def get_fasterRCNN(num_classes = 100):
 
     ssl_bb = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+    # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
 
-    # get number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-    model.backbone.body = ssl_bb
+    # # get number of input features for the classifier
+    # in_features = model.roi_heads.box_predictor.cls_score.in_features
+    # # replace the pre-trained head with a new one
+    # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    # model.backbone.body = ssl_bb
     # # backbone.out_channels = 2048
     # #TODO Load SSL trained weights here
     # from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
@@ -51,11 +51,11 @@ def get_fasterRCNN(num_classes = 100):
     # # This just adds the fpn to the resnet backbone?
     # backbone.body = ssl_bb
     
-    # model = torchvision.models.detection.FasterRCNN(backbone, num_classes=100)   
+    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100)   
     # # get number of input features for the classifier
-    # in_features = model.roi_heads.box_predictor.cls_score.in_features
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
     # # replace the pre-trained head with a new one
-    # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     return model
 
