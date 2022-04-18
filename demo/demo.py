@@ -34,6 +34,13 @@ def get_model(num_classes):
 
     return model
 
+def get_fasterRCNN():
+    backbone = torch.nn.Sequential(*(list(torchvision.models.resnet50(pretrained=False).children())[:-2]))
+    backbone.out_channels = 2048
+    #TODO Load SSL trained weights here
+    model = torchvision.models.detection.FasterRCNN(backbone, num_classes=100)
+    return model
+
 def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
