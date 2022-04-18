@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-
+from torchvision.models.detection.anchor_utils import AnchorGenerator
 import transforms as T
 import utils
 from engine import train_one_epoch, evaluate
@@ -44,14 +44,17 @@ def get_fasterRCNN(num_classes = 100):
     # # replace the pre-trained head with a new one
     # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     # model.backbone.body = ssl_bb
-    # # backbone.out_channels = 2048
+    ssl_bb.out_channels = 2048
     # #TODO Load SSL trained weights here
     # from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
     # backbone = resnet_fpn_backbone('resnet50', False, trainable_layers=3)
     # # This just adds the fpn to the resnet backbone?
     # backbone.body = ssl_bb
-    
-    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100)   
+    anchor_sizes = ((512,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    default_anchor_gen = AnchorGenerator(anchor_sizes, aspect_ratios)
+
+    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100, rpn_anchor_generator=default_anchor_gen)   
     # # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # # replace the pre-trained head with a new one
