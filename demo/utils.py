@@ -8,6 +8,7 @@ import torch.distributed as dist
 
 import errno
 import os
+import wandb
 
 
 class SmoothedValue(object):
@@ -322,3 +323,13 @@ def init_distributed_mode(args):
                                          world_size=args.world_size, rank=args.rank)
     torch.distributed.barrier()
     setup_for_distributed(args.rank == 0)
+
+def log_loss(loss_dict):
+    log_dict = dict()
+    for k,v in loss_dict.items():
+        if isinstance(v, torch.Tensor):
+            log_dict[k] = v.item()
+
+        log_dict[k] = v
+    print("Logging")
+    wandb.log(log_dict)

@@ -13,4 +13,6 @@ dl_ssl/checkpoints/*
 # Setup files
 dl_ssl.egg-info/*
 
+*.txt
 
+demo/checkpoints/*
