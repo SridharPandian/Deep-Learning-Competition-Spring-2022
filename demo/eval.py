@@ -67,7 +67,7 @@ def load_dino_weights(checkpoint_location):
 def main():
     parser = argparse.ArgumentParser(description='Specify model files to evaluate.') 
     parser.add_argument('-b', '--bb_path', default="./checkpoint0033.pth", type=str)
-    parser.add_argument('-m', '--model_path', default="./finetuned_0.pth", type=str)
+    parser.add_argument('-m', '--model_path', default="./finetuned_6.pth", type=str)
     args = parser.parse_args()
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
