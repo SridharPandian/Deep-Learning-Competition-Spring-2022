@@ -37,7 +37,7 @@ def get_model(num_classes):
 def get_fasterRCNN(num_classes = 100):
     ssl_model = torchvision.models.resnet50(pretrained=False)
     ssl_model.fc = nn.Identity()
-    ssl_model.load_state_dict(load_dino_weights(checkpoint_location="./checkpoint0033.pth"), strict = False)
+    ssl_model.load_state_dict(load_moco_weights(checkpoint_location="/home/abitha/projects/moco_checkpoint_0066.pth"), strict = False)
 
     ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-1]))
 
@@ -78,10 +78,10 @@ def main():
     
 
     num_classes = 100
-    train_dataset = LabeledDataset(root='/labeled', split="training", transforms=get_transform(train=True))
+    train_dataset = LabeledDataset(root='/home/abitha/labeled_data', split="training", transforms=get_transform(train=True))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=5, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
-    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
+    valid_dataset = LabeledDataset(root='/home/abitha/labeled_data', split="validation", transforms=get_transform(train=False))
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=5, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
@@ -90,7 +90,7 @@ def main():
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.03, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     num_epochs = 100
@@ -102,7 +102,7 @@ def main():
         # evaluate on the test dataset
         evaluate(model, valid_loader, device=device)
         print("Saving model")
-        torch.save(model.state_dict(), "/home/abitha/projects/Deep-Learning-Competition-Spring-2022/demo/checkpoints/dino_68_finetuned_{}.pth".format(epoch))
+        torch.save(model.state_dict(), "/home/abitha/projects/Deep-Learning-Competition-Spring-2022/demo/checkpoints/moco_finetuned_{}.pth".format(epoch))
 
 
     print("That's it!")

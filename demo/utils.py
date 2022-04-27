@@ -331,5 +331,4 @@ def log_loss(loss_dict):
             log_dict[k] = v.item()
 
         log_dict[k] = v
-    print("Logging")
     wandb.log(log_dict)
