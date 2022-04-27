@@ -99,6 +99,10 @@ def main(args):
 
     # model = get_model(num_classes)
     model = get_fasterRCNN(args.backbone_type, args.backbone_path, num_classes)
+    if(args.restart_from):
+        print('Resuming from checkpoint: ' + args.restart_from + '... ')
+        model.load_state_dict(torch.load(args.restart_from)["state_dict"])
+
     model.to(device)
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
