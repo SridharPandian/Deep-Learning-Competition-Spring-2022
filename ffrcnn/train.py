@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.anchor_utils import AnchorGenerator
+
 import os
 import sys
 sys.path.append(os.getcwd() + '/../demo')
@@ -17,6 +18,7 @@ import utils
 from engine import train_one_epoch, evaluate
 import wandb
 import datetime
+import argparse
 
 from dataset import UnlabeledDataset, LabeledDataset
 
@@ -37,11 +39,19 @@ def get_model(num_classes):
 
     return model
 
-def get_fasterRCNN(num_classes = 100):
+def get_fasterRCNN(backbone_type, backbone_path, num_classes = 100):
     ssl_model = torchvision.models.resnet50(pretrained=False)
     ssl_model.fc = nn.Identity()
-    ssl_model.load_state_dict(load_moco_weights(checkpoint_location="/home/abitha/projects/moco_checkpoint_0066.pth"), strict = False)
+    ssl_weights = None
+    if(backbone_type =='dino'):
+        ssl_weights = load_dino_weights(checkpoint_location=backbone_path)
+    elif(backbone_type=='moco')    
+        ssl_weights = load_moco_weights(checkpoint_location=backbone_path)
+    else:
+        print('Backbone type not supported, sorry')
+        sys.exit()
 
+    ssl_model.load_state_dict(ssl_weights, strict = False)
     ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-1]))
 
     ssl_bb.out_channels = 2048
@@ -71,9 +81,9 @@ def load_moco_weights(checkpoint_location):
     return state_dict
 
 
-def main():
+def main(args):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    exp_name = "finetune_dino_"+ str(datetime.datetime.now())
+    exp_name = args.exp_name + str(datetime.datetime.now())
     wandb.init(
             project="dl-project-finetune", 
             name=exp_name,
@@ -88,7 +98,7 @@ def main():
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=5, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
-    model = get_fasterRCNN(num_classes)
+    model = get_fasterRCNN(args.backbone_type, args.backbone_path, num_classes)
     model.to(device)
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
@@ -105,10 +115,18 @@ def main():
         # evaluate on the test dataset
         evaluate(model, valid_loader, device=device)
         print("Saving model")
-        torch.save(model.state_dict(), "/home/abitha/projects/Deep-Learning-Competition-Spring-2022/demo/checkpoints/moco_finetuned_{}.pth".format(epoch))
+        output_path = os.path.join(args.output_dir, 'finetuned{}'.format(epoch))
+        torch.save(model.state_dict(), output_path)
 
 
     print("That's it!")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Specify details about model training--output and files to use.')
+    parser.add_argument('--backbone_path', type=str,required=True)
+    parser.add_argument('-o','--output_dir', type=str,required=True)
+    parser.add_argument('--backbone_type', type=str,default="dino",required=True)
+    parser.add_argument('--exp_name', type=str,required=True)
+    parser.add_argument('-r','--restart_from',type=str)
+    args = parser.parse_args
+    main(args)
