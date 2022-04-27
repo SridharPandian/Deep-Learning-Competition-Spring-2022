@@ -8,6 +8,7 @@ import torchvision.models.detection.mask_rcnn
 from coco_utils import get_coco_api_from_dataset
 from coco_eval import CocoEvaluator
 import utils
+import wandb
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
@@ -95,6 +96,8 @@ def evaluate(model, data_loader, device):
         model_time = time.time() - model_time
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+        from IPython import embed; embed()
+
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
