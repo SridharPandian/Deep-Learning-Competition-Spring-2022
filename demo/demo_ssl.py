@@ -23,11 +23,13 @@ def get_args():
 
     parser.add_argument('--ssl_method', type=str)
     parser.add_argument('--epochs', default=100, type=int)
-    parser.add_argument('--data_path', default='/home/robotlab/projects/deep-learning/labeled_data' ,type=str)
+    parser.add_argument('--data_path', default='/home/sridhar/.personal/deep-learning/project/dl_ssl/data/labeled_data' ,type=str)
     parser.add_argument('--checkpoint_dir', type=str)
     parser.add_argument('--run', default=1, type=int)
     parser.add_argument('--gpu_num', default=0, type=int)
     parser.add_argument('--batch_size', default=2, type=int)
+    parser.add_argument('--print_freq', default=10, type=int)
+
     return parser.parse_args()
 
 def get_transform(train):
@@ -94,24 +96,24 @@ def main(args):
     print(f'Using GPU: {args.gpu_num} for training!')
     device = torch.device(f'cuda:{args.gpu_num}') if torch.cuda.is_available() else torch.device('cpu')
     if args.ssl_method == 'dino':
-        exp_name = "finetune_dino_"+ str(args.run)
+        exp_name = "finetune_dino_v"+ str(args.run)
     elif args.ssl_method == 'byol':
-        exp_name = "finetune_byol_"+ str(args.run)
+        exp_name = "finetune_byol_v"+ str(args.run)
     elif args.ssl_method == 'moco':
-        exp_name = "finetune_moco_"+ str(args.run)
+        exp_name = "finetune_moco_v"+ str(args.run)
     
     wandb.init(
-            project="dl-project-finetune", 
+            project="Deep Learning - SSL", 
             name=exp_name,
     )
     
 
     num_classes = 100
     train_dataset = LabeledDataset(root=args.data_path, split="training", transforms=get_transform(train=True))
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, collate_fn=utils.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
     valid_dataset = LabeledDataset(root=args.data_path, split="validation", transforms=get_transform(train=False))
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, collate_fn=utils.collate_fn)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
     model = get_fasterRCNN(args, num_classes)
@@ -125,7 +127,7 @@ def main(args):
     num_epochs = args.epochs
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=10)
+        train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=args.print_freq)
         # update the learning rate
         lr_scheduler.step()
         # evaluate on the test dataset
@@ -133,11 +135,11 @@ def main(args):
         print("Saving model")
 
         if exp == 'dino':
-            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/dino_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino_finetuned_{}.pth".format(epoch))
         elif exp == 'byol':
-            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/byol_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol_finetuned_{}.pth".format(epoch))
         elif exp == 'moco':
-            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/moco_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco_finetuned_{}.pth".format(epoch))
 
 
     print("That's it!")

@@ -96,7 +96,6 @@ def evaluate(model, data_loader, device):
         model_time = time.time() - model_time
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
-        from IPython import embed; embed()
 
         evaluator_time = time.time()
         coco_evaluator.update(res)
