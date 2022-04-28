@@ -14,8 +14,21 @@ import utils
 from engine import train_one_epoch, evaluate
 import wandb
 import datetime
+import argparse
 
 from dataset import UnlabeledDataset, LabeledDataset
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--ssl_method', type=str)
+    parser.add_argument('--epochs', default=100, type=int)
+    parser.add_argument('--data_path', default='/home/robotlab/projects/deep-learning/labeled_data' ,type=str)
+    parser.add_argument('--checkpoint_dir', type=str)
+    parser.add_argument('--run', default=1, type=int)
+    parser.add_argument('--gpu_num', default=0, type=int)
+    parser.add_argument('--batch_size', default=2, type=int)
+    return parser.parse_args()
 
 def get_transform(train):
     transforms = []
@@ -34,10 +47,16 @@ def get_model(num_classes):
 
     return model
 
-def get_fasterRCNN(num_classes = 100):
+def get_fasterRCNN(args, num_classes = 100):
     ssl_model = torchvision.models.resnet50(pretrained=False)
     ssl_model.fc = nn.Identity()
-    ssl_model.load_state_dict(load_moco_weights(checkpoint_location="/home/abitha/projects/moco_checkpoint_0066.pth"), strict = False)
+
+    if args.ssl_method == 'dino':
+        ssl_model.load_state_dict(load_dino_weights(checkpoint_location=args.checkpoint_dir), strict = False)
+    elif args.ssl_method == 'byol':
+        ssl_model.load_state_dict(load_byol_weights(checkpoint_location=args.checkpoint_dir), strict = False)
+    elif args.ssl_method == 'moco':
+        ssl_model.load_state_dict(load_moco_weights(checkpoint_location=args.checkpoint_dir), strict = False)
 
     ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-1]))
 
@@ -67,10 +86,20 @@ def load_moco_weights(checkpoint_location):
     state_dict = {k.replace("module.base_encoder.", ""): v for k, v in state_dict.items()}
     return state_dict
 
+def load_byol_weights(checkpoint_location):
+    state_dict = torch.load(checkpoint_location)["model_state_dict"]
+    return state_dict
 
-def main():
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    exp_name = "finetune_dino_"+ str(datetime.datetime.now())
+def main(args):
+    print(f'Using GPU: {args.gpu_num} for training!')
+    device = torch.device(f'cuda:{args.gpu_num}') if torch.cuda.is_available() else torch.device('cpu')
+    if args.ssl_method == 'dino':
+        exp_name = "finetune_dino_"+ str(args.run)
+    elif args.ssl_method == 'byol':
+        exp_name = "finetune_byol_"+ str(args.run)
+    elif args.ssl_method == 'moco':
+        exp_name = "finetune_moco_"+ str(args.run)
+    
     wandb.init(
             project="dl-project-finetune", 
             name=exp_name,
@@ -78,14 +107,14 @@ def main():
     
 
     num_classes = 100
-    train_dataset = LabeledDataset(root='/home/abitha/labeled_data', split="training", transforms=get_transform(train=True))
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=5, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
+    train_dataset = LabeledDataset(root=args.data_path, split="training", transforms=get_transform(train=True))
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8, collate_fn=utils.collate_fn)
 
-    valid_dataset = LabeledDataset(root='/home/abitha/labeled_data', split="validation", transforms=get_transform(train=False))
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=5, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
+    valid_dataset = LabeledDataset(root=args.data_path, split="validation", transforms=get_transform(train=False))
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=8, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
-    model = get_fasterRCNN(num_classes)
+    model = get_fasterRCNN(args, num_classes)
     model.to(device)
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
@@ -93,7 +122,7 @@ def main():
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
-    num_epochs = 100
+    num_epochs = args.epochs
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
         train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=10)
@@ -102,10 +131,17 @@ def main():
         # evaluate on the test dataset
         evaluate(model, valid_loader, device=device)
         print("Saving model")
-        torch.save(model.state_dict(), "/home/abitha/projects/Deep-Learning-Competition-Spring-2022/demo/checkpoints/moco_finetuned_{}.pth".format(epoch))
+
+        if exp == 'dino':
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/dino_finetuned_{}.pth".format(epoch))
+        elif exp == 'byol':
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/byol_finetuned_{}.pth".format(epoch))
+        elif exp == 'moco':
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/checkpoints/moco_finetuned_{}.pth".format(epoch))
 
 
     print("That's it!")
 
 if __name__ == "__main__":
-    main()
+    options = get_args()
+    main(options)
