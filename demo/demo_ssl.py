@@ -72,9 +72,9 @@ def get_fasterRCNN(args, num_classes = 100):
 
     ssl_bb.out_channels = 2048
 
-    anchor_sizes = ((128, 256, 512,))
+    anchor_sizes = ((64,), (128,), (256,), (512,))
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-    default_anchor_gen = AnchorGenerator(anchor_sizes, aspect_ratios)
+    default_anchor_gen = AnchorGenerator()
     model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100, rpn_anchor_generator=default_anchor_gen)   
     # # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -121,7 +121,7 @@ def main(args):
     )
     
 
-    num_classes = 100
+    num_classes = 101
     train_dataset = LabeledDataset(root=args.data_path, split="training", transforms=get_transform(train=True))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
@@ -134,8 +134,8 @@ def main(args):
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0005)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.33)
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     num_epochs = args.epochs
     for epoch in range(num_epochs):
