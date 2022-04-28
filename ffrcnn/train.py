@@ -39,14 +39,14 @@ def get_model(num_classes):
 
     return model
 
-def get_fasterRCNN(backbone_type, backbone_path, num_classes = 100):
+def get_fasterRCNN(device, backbone_type, backbone_path, num_classes = 100):
     ssl_model = torchvision.models.resnet50(pretrained=False)
     ssl_model.fc = nn.Identity()
     ssl_weights = None
     if(backbone_type =='dino'):
-        ssl_weights = load_dino_weights(checkpoint_location=backbone_path)
-    elif(backbone_type=='moco')    
-        ssl_weights = load_moco_weights(checkpoint_location=backbone_path)
+        ssl_weights = load_dino_weights(device, checkpoint_location=backbone_path)
+    elif(backbone_type=='moco'): 
+        ssl_weights = load_moco_weights(device,checkpoint_location=backbone_path)
     else:
         print('Backbone type not supported, sorry')
         sys.exit()
@@ -67,15 +67,15 @@ def get_fasterRCNN(backbone_type, backbone_path, num_classes = 100):
 
     return model
 
-def load_dino_weights(checkpoint_location):
-    state_dict = torch.load(checkpoint_location)["student"]
+def load_dino_weights(device, checkpoint_location):
+    state_dict = torch.load(checkpoint_location,map_location=device)["student"]
     # remove `module.` prefix
     state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
     # remove `backbone.` prefix induced by multicrop wrapper
     state_dict = {k.replace("backbone.", ""): v for k, v in state_dict.items()}
     return state_dict
 
-def load_moco_weights(checkpoint_location):
+def load_moco_weights(device,checkpoint_location):
     state_dict = torch.load(checkpoint_location)["state_dict"]
     state_dict = {k.replace("module.base_encoder.", ""): v for k, v in state_dict.items()}
     return state_dict
@@ -84,6 +84,7 @@ def load_moco_weights(checkpoint_location):
 def main(args):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     exp_name = args.exp_name + str(datetime.datetime.now())
+    
     wandb.init(
             project="dl-project-finetune", 
             name=exp_name,
@@ -92,16 +93,16 @@ def main(args):
 
     num_classes = 100
     train_dataset = LabeledDataset(root='/labeled', split="training", transforms=get_transform(train=True))
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=5, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
     valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=5, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
-    model = get_fasterRCNN(args.backbone_type, args.backbone_path, num_classes)
+    model = get_fasterRCNN(device, args.backbone_type, args.backbone_path, num_classes)
     if(args.restart_from):
         print('Resuming from checkpoint: ' + args.restart_from + '... ')
-        model.load_state_dict(torch.load(args.restart_from)["state_dict"])
+        model.load_state_dict(torch.load(args.restart_from,map_location=device))
 
     model.to(device)
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     parser.add_argument('--backbone_path', type=str,required=True)
     parser.add_argument('-o','--output_dir', type=str,required=True)
     parser.add_argument('--backbone_type', type=str,default="dino",required=True)
-    parser.add_argument('--exp_name', type=str,required=True)
+    parser.add_argument('-e','--exp_name', type=str,required=True)
     parser.add_argument('-r','--restart_from',type=str)
-    args = parser.parse_args
+    args = parser.parse_args()
     main(args)
