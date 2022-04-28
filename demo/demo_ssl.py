@@ -49,7 +49,7 @@ def get_model(num_classes):
 
     return model
 
-def get_fasterRCNN(args, num_classes = 100):
+def get_fasterRCNN(args, num_classes = 101):
     ssl_model = torchvision.models.resnet50(pretrained=False)
     ssl_model.fc = nn.Identity()
 
@@ -75,7 +75,7 @@ def get_fasterRCNN(args, num_classes = 100):
     anchor_sizes = ((64,), (128,), (256,), (512,))
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
     default_anchor_gen = AnchorGenerator(anchor_sizes, aspect_ratios)
-    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100, rpn_anchor_generator=default_anchor_gen)   
+    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=101, rpn_anchor_generator=default_anchor_gen)   
     # # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # # replace the pre-trained head with a new one
