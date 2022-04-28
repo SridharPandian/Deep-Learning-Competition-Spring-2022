@@ -59,12 +59,20 @@ def get_fasterRCNN(args, num_classes = 100):
         ssl_model.load_state_dict(load_byol_weights(checkpoint_location=args.checkpoint_dir), strict = False)
     elif args.ssl_method == 'moco':
         ssl_model.load_state_dict(load_moco_weights(checkpoint_location=args.checkpoint_dir), strict = False)
+    elif args.ssl_method == 'barlow_twins':
+        ssl_model.load_state_dict(load_barlow_twins_weights(checkpoint_location=args.checkpoint_dir), strict = False)
 
     ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-1]))
 
+    # Freeze batch norm
+    _bn_modules = nn.ModuleList([it for it in ssl_bb.modules() if isinstance(it, nn.BatchNorm2d)] )
+    for bn_module in _bn_modules:
+        for parameter in bn_module.parameters():
+            parameter.requires_grad = False
+
     ssl_bb.out_channels = 2048
 
-    anchor_sizes = ((512,))
+    anchor_sizes = ((128, 256, 512,))
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
     default_anchor_gen = AnchorGenerator(anchor_sizes, aspect_ratios)
     model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=100, rpn_anchor_generator=default_anchor_gen)   
@@ -92,6 +100,9 @@ def load_byol_weights(checkpoint_location):
     state_dict = torch.load(checkpoint_location)["model_state_dict"]
     return state_dict
 
+def load_barlow_twins_weights(checkpoint_location):
+    return torch.load(checkpoint_location)
+
 def main(args):
     print(f'Using GPU: {args.gpu_num} for training!')
     device = torch.device(f'cuda:{args.gpu_num}') if torch.cuda.is_available() else torch.device('cpu')
@@ -101,6 +112,8 @@ def main(args):
         exp_name = "finetune_byol_v"+ str(args.run)
     elif args.ssl_method == 'moco':
         exp_name = "finetune_moco_v"+ str(args.run)
+    elif args.ssl_method == 'barlow_twins':
+        exp_name = "finetune_barlow_twins_v"+ str(args.run)
     
     wandb.init(
             project="Deep Learning - SSL", 
@@ -121,8 +134,8 @@ def main(args):
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0005)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.33)
 
     num_epochs = args.epochs
     for epoch in range(num_epochs):
@@ -134,13 +147,14 @@ def main(args):
         evaluate(model, valid_loader, device=device)
         print("Saving model")
 
-        if exp == 'dino':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino_finetuned_{}.pth".format(epoch))
-        elif exp == 'byol':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol_finetuned_{}.pth".format(epoch))
-        elif exp == 'moco':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco_finetuned_{}.pth".format(epoch))
-
+        if args.ssl_method == 'dino':
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol/dino_finetuned_{}.pth".format(epoch))
+        elif args.ssl_method == 'byol':
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino/byol_finetuned_{}.pth".format(epoch))
+        elif args.ssl_method == 'moco':
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco/moco_finetuned_{}.pth".format(epoch))
+        elif args.ssl_method == 'barlow_twins':
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/barlow_twins/barlow_twins_finetuned_{}.pth".format(epoch))
 
     print("That's it!")
 
