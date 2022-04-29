@@ -116,10 +116,10 @@ def main(args):
     elif args.ssl_method is None:
         exp_name = "no_ssl_"+ str(args.run) + f"_{args.comment}"
     
-    # wandb.init( 
-    #     project="Deep Learning - SSL", 
-    #     name=exp_name,
-    # )
+    wandb.init( 
+        project="Deep Learning - SSL", 
+        name=exp_name,
+    )
 
     num_classes = 101
     train_dataset = LabeledDataset(root=args.data_path, split="training", transforms=get_transform(train=True))
