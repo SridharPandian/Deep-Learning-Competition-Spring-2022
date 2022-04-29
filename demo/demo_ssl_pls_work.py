@@ -74,6 +74,12 @@ def get_ssl_model(args, num_classes):
     ssl_weights = _get_state_dict(args.ssl_method)
     model_child_list[0].load_state_dict(state_dict=ssl_weights, strict = False)
     
+    if args.bn:
+        # Freeze batch norm
+        _bn_modules = nn.ModuleList([it for it in model_child_list[0].modules() if isinstance(it, nn.BatchNorm2d)] )
+        for bn_module in _bn_modules:
+            for parameter in bn_module.parameters():
+                parameter.requires_grad = False
     
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
