@@ -29,6 +29,7 @@ def get_args():
     parser.add_argument('--gpu_num', default=0, type=int)
     parser.add_argument('--batch_size', default=2, type=int)
     parser.add_argument('--print_freq', default=10, type=int)
+    parser.add_argument('--comment', type=str)
 
     return parser.parse_args()
 
@@ -72,10 +73,10 @@ def get_fasterRCNN(args, num_classes = 101):
 
     ssl_bb.out_channels = 2048
 
-    anchor_sizes = ((64,), (128,), (256,), (512,))
-    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-    default_anchor_gen = AnchorGenerator(anchor_sizes, aspect_ratios)
-    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes=101, rpn_anchor_generator=default_anchor_gen)   
+    anchor_sizes = ((32, 64, 128, 256, 512),) 
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes) 
+    default_anchor_gen = AnchorGenerator(sizes = anchor_sizes, aspect_ratios = aspect_ratios)
+    model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes = 101, rpn_anchor_generator=default_anchor_gen)   
     # # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     # # replace the pre-trained head with a new one
@@ -107,13 +108,13 @@ def main(args):
     print(f'Using GPU: {args.gpu_num} for training!')
     device = torch.device(f'cuda:{args.gpu_num}') if torch.cuda.is_available() else torch.device('cpu')
     if args.ssl_method == 'dino':
-        exp_name = "finetune_dino_v"+ str(args.run)
+        exp_name = "finetune_dino_v"+ str(args.run) + f"_{args.comment}"
     elif args.ssl_method == 'byol':
-        exp_name = "finetune_byol_v"+ str(args.run)
+        exp_name = "finetune_byol_v"+ str(args.run) + f"_{args.comment}"
     elif args.ssl_method == 'moco':
-        exp_name = "finetune_moco_v"+ str(args.run)
+        exp_name = "finetune_moco_v"+ str(args.run) + f"_{args.comment}"
     elif args.ssl_method == 'barlow_twins':
-        exp_name = "finetune_barlow_twins_v"+ str(args.run)
+        exp_name = "finetune_barlow_twins_v"+ str(args.run) + f"_{args.comment}"
     
     wandb.init(
             project="Deep Learning - SSL", 
@@ -148,13 +149,13 @@ def main(args):
         print("Saving model")
 
         if args.ssl_method == 'dino':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol/dino_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol/dino_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'byol':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino/byol_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino/byol_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'moco':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco/moco_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco/moco_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'barlow_twins':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/barlow_twins/barlow_twins_finetuned_{}.pth".format(epoch))
+            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/barlow_twins/barlow_twins_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
 
     print("That's it!")
 
