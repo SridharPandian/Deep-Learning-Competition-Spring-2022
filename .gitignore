@@ -16,3 +16,4 @@ dl_ssl.egg-info/*
 *.txt
 
 demo/checkpoints/*
+demo/finetune_checkpoints/*
