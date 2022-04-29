@@ -23,25 +23,30 @@ def get_args():
 
     parser.add_argument('--ssl_method', type=str)
     parser.add_argument('--epochs', default=100, type=int)
-    parser.add_argument('--data_path', default='/home/sridhar/.personal/deep-learning/project/dl_ssl/data/labeled_data' ,type=str)
+    parser.add_argument('--data_path', default='/home/robotlab/projects/deep-learning/labeled_data' ,type=str)
     parser.add_argument('--checkpoint_dir', type=str)
     parser.add_argument('--run', default=1, type=int)
     parser.add_argument('--gpu_num', default=0, type=int)
     parser.add_argument('--batch_size', default=2, type=int)
     parser.add_argument('--print_freq', default=10, type=int)
     parser.add_argument('--comment', type=str)
+    parser.add_argument('--bn', type=bool, default=False)
 
     return parser.parse_args()
 
 def get_transform(train):
     transforms = []
-    transforms.append(T.ToTensor())
+    transforms.append(
+        T.ToTensor()
+    )
     if train:
-        transforms.append(T.RandomHorizontalFlip(0.5))
+        transforms.append(
+            T.RandomHorizontalFlip(0.5)
+            )
     return T.Compose(transforms)
 
 def get_model(num_classes):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
     # get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -65,15 +70,16 @@ def get_fasterRCNN(args, num_classes = 101):
 
     ssl_bb = torch.nn.Sequential(*(list(ssl_model.children())[:-1]))
 
-    # Freeze batch norm
-    _bn_modules = nn.ModuleList([it for it in ssl_bb.modules() if isinstance(it, nn.BatchNorm2d)] )
-    for bn_module in _bn_modules:
-        for parameter in bn_module.parameters():
-            parameter.requires_grad = False
+    if args.bn:
+        # Freeze batch norm
+        _bn_modules = nn.ModuleList([it for it in ssl_bb.modules() if isinstance(it, nn.BatchNorm2d)] )
+        for bn_module in _bn_modules:
+            for parameter in bn_module.parameters():
+                parameter.requires_grad = False
 
     ssl_bb.out_channels = 2048
 
-    anchor_sizes = ((32, 64, 128, 256, 512),) 
+    anchor_sizes = ((32, 64, 128, 256),) 
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes) 
     default_anchor_gen = AnchorGenerator(sizes = anchor_sizes, aspect_ratios = aspect_ratios)
     model = torchvision.models.detection.FasterRCNN(backbone = ssl_bb, num_classes = 101, rpn_anchor_generator=default_anchor_gen)   
@@ -115,12 +121,13 @@ def main(args):
         exp_name = "finetune_moco_v"+ str(args.run) + f"_{args.comment}"
     elif args.ssl_method == 'barlow_twins':
         exp_name = "finetune_barlow_twins_v"+ str(args.run) + f"_{args.comment}"
+    elif args.ssl_method is None:
+        exp_name = "no_ssl_"+ str(args.run) + f"_{args.comment}"
     
-    wandb.init(
-            project="Deep Learning - SSL", 
-            name=exp_name,
+    wandb.init( 
+        project="Deep Learning - SSL", 
+        name=exp_name,
     )
-    
 
     num_classes = 101
     train_dataset = LabeledDataset(root=args.data_path, split="training", transforms=get_transform(train=True))
@@ -130,7 +137,10 @@ def main(args):
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     # model = get_model(num_classes)
-    model = get_fasterRCNN(args, num_classes)
+    if  args.ssl_method is None:
+        model = get_model(num_classes)
+    else:
+        model = get_fasterRCNN(args, num_classes)
     model.to(device)
     # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu])
 
@@ -149,13 +159,15 @@ def main(args):
         print("Saving model")
 
         if args.ssl_method == 'dino':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/byol/dino_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/finetune_checkpoints/dino_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'byol':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/dino/byol_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/finetune_checkpoints/byol_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'moco':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/moco/moco_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/finetune_checkpoints/moco_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
         elif args.ssl_method == 'barlow_twins':
-            torch.save(model.state_dict(), "/home/sridhar/.personal/deep-learning/finetune_checkpoints/barlow_twins/barlow_twins_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/finetune_checkpoints/barlow_twins_finetuned_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
+        elif args.ssl_method is None:
+            torch.save(model.state_dict(), "/home/robotlab/projects/deep-learning/Deep-Learning-Competition-Spring-2022/demo/finetune_checkpoints/checkpt_{}_run_{}_{}.pth".format(epoch, args.run, args.comment))
 
     print("That's it!")
 
