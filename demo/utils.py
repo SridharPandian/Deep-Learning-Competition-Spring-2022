@@ -331,4 +331,22 @@ def log_loss(loss_dict):
             log_dict[k] = v.item()
 
         log_dict[k] = v
-    # wandb.log(log_dict)
+    wandb.log(log_dict)
+
+def log_coco_eval(stats):
+    coco_eval_keys = [" AP.IoU=0.50:0.95 | area=   all | maxDets=100",
+        " AP.IoU=0.50      | area=   all | maxDets=100",
+        " AP.IoU=0.75      | area=   all | maxDets=100",
+        " AP.IoU=0.50:0.95 | area= small | maxDets=100",
+        " AP.IoU=0.50:0.95 | area=medium | maxDets=100",
+        " AP.IoU=0.50:0.95 | area= large | maxDets=100",
+        " Average Recall     IoU=0.50:0.95 | area=   all | maxDets=  1",
+        " Average Recall     IoU=0.50:0.95 | area=   all | maxDets= 10",
+        " Average Recall     IoU=0.50:0.95 | area=   all | maxDets=100",
+        " Average Recall     IoU=0.50:0.95 | area= small | maxDets=100",
+        " Average Recall     IoU=0.50:0.95 | area=medium | maxDets=100",
+        " Average Recall     IoU=0.50:0.95 | area= large | maxDets=100"]
+    coco_eval_dict = {}
+    for k, s in zip(coco_eval_keys, stats):
+        coco_eval_dict[k] = s
+    wandb.log(coco_eval_dict)
